@@ -1,7 +1,3 @@
-# render
-自制微型模板渲染工具，一次性解析所有的模板，提高访问性能，并简化Web页面的开发。
-
-~~~go
 package main
 
 import (
@@ -42,4 +38,3 @@ func main() {
 	log.Println("http://localhost:8080/")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
-~~~

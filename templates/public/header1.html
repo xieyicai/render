@@ -1,0 +1,11 @@
+{{define "header1"}} {{/* header.html 它是页面的嵌入模板 */}}
+<head>
+	<!-- 声明当前页面编码集：中文（GBK/GB2312），国际编码（utf-8） -->
+	<meta http-equiv="Content-Type" content="text/html" charset="utf-8"/>
+	<!-- 声明当前页面的三要素：title标签以及keywords和description的meta标签，三要素一般都要从数据库表里读取 -->
+	<title>{{.Title}}</title>	 {{/* index.html模板中的变量传递到header.html模板中使用 */}}
+	<meta name="keywords" content="关键词1,关键词2"/><!-- 关键词：title和body内容对应的核心关键词，一般不超过100个字符（50个汉字） -->
+	<meta name="description" content=""/><!-- 内容摘要，一般不超过200个字符（100个汉字） -->
+	<link type="text/css" rel="stylesheet" href="/static/css/index.css" />
+</head>
+{{end}} {{/*  {{ 嵌入模板定义格式：define "嵌入模板名称"}} {{end}}  */}}

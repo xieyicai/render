@@ -1,0 +1,22 @@
+<!DOCTYPE html><!-- 声明当前页面文件格式符合w3c标准，兼容所有浏览器 -->
+<html> {{/* index.html 它是页面模板 */}}
+{{template "header1" .}} {{/* header.html 它是页面嵌入模板,最后的那个点表示将当前模板中的变量传递到header.html模板中 */}}
+<body>
+	<div id="container">
+		<header>
+			<div class="t-header">
+				<div class="t-logo">
+					<a href="#">
+						<img src="static/images/tmall.jpg" alt="天猫Tmall.com" width="990" height="80"/>
+					</a>
+				</div>
+			</div>
+		</header>
+		<section class="main">
+            {{.Title}}
+		</section >
+		<a href="test2.html">test2.html</a>
+	</div>
+{{template "footer1"}} {{/* footer.html 它是页面嵌入模板,双花括号内容后面没有那个点表示footer.html模板中没有变量 */}}
+</body>
+</html>
