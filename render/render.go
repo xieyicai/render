@@ -59,8 +59,8 @@ func TurnOn(){
 	}
 }
 func TurnOff(){
+	Pause=true
 	if run!=nil {
-		Pause=true
 		run <- false
 	}
 }
@@ -84,7 +84,7 @@ func IsChange() bool {
 }
 func LoadTemplates() (*template.Template, map[string]os.FileInfo) {
 	var all *template.Template
-	map1 := make(map[string]os.FileInfo)	//清空
+	map1 := make(map[string]os.FileInfo)
 	err:=filepath.Walk(Dir, func (path string, info os.FileInfo, err error) error {
 		if err==nil {
 			if !info.IsDir() && strings.HasSuffix(info.Name(), Suffix) {
@@ -120,8 +120,28 @@ func LoadTemplates() (*template.Template, map[string]os.FileInfo) {
 func SendError(writer http.ResponseWriter, statusCode int, title string, description interface{}) {
 	writer.Header().Set("Content-Type", "text/html; charset=utf-8")
 	writer.WriteHeader(statusCode)
-	if _, err := fmt.Fprintf(writer, "<html><body><h2>%s</h2><pre>%v</pre></body></html>", strings.ReplaceAll(title, "<", "&lt;"), description); err != nil { //向浏览器输出
-		log.Printf("The connection to the client has been disconnected. %v.\r\n", err)
+	filename:=fmt.Sprintf("/errors/%d.html", statusCode)
+	_, exists:=cache[filepath.Join(Dir, filename)]
+	if exists {
+		data:=GetData(filename)
+		if data==nil || data==DefaultData {
+			map1:=make(map[string]interface{})
+			map1["Title"]=title
+			map1["Description"]=description
+			data=&map1
+		}else{
+			if map1, yes := data.(map[string]interface{}); yes {
+				map1["Title"]=title
+				map1["Description"]=description
+			}
+		}
+		if err := tt.ExecuteTemplate(writer, filename, data); err != nil {
+			log.Printf("模板渲染失败，未能向客户端发送错误信息。 %v.\r\n", err)
+		}
+	}else{
+		if _, err := fmt.Fprintf(writer, "<html><body><h2>%s</h2><pre>%v</pre></body></html>", strings.ReplaceAll(title, "<", "&lt;"), description); err != nil { //向浏览器输出
+			log.Printf("The connection to the client has been disconnected. %v.\r\n", err)
+		}
 	}
 }
 /*
