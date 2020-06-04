@@ -203,9 +203,19 @@ func Out(writer http.ResponseWriter, req *http.Request, data interface{}, filena
 	}
 }
 func SetData(path string, data interface{}){
+	if path=="" {
+		path="/index"+Suffix
+	}else if path[0]!='/' {
+		path="/"+path
+	}
 	DataMap[path]=&Data{d:data}
 }
 func SetDataFunc(path string, handler func(writer http.ResponseWriter, req *http.Request) interface{}){
+	if path=="" {
+		path="/index"+Suffix
+	}else if path[0]!='/' {
+		path="/"+path
+	}
 	DataMap[path]=DataFunc(handler)
 }
 func GetData(path string, writer http.ResponseWriter, req *http.Request) interface{} {
