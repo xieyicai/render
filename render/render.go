@@ -3,6 +3,7 @@ package render
 import (
 	"errors"
 	"fmt"
+	"github.com/justinas/nosurf"
 	"html/template"
 	"io/ioutil"
 	"log"
@@ -21,10 +22,25 @@ var (
 	cache = make(map[string]os.FileInfo)
 	tt *template.Template
 	Pause = true
-	DataMap = make(map[string]interface{})
-	DefaultData interface{}
+	DataMap = make(map[string]DataHandler)
+	DefaultData DataHandler
 	run = make(chan bool, 10)
 )
+type DataHandler interface {
+	GetData(http.ResponseWriter, *http.Request) interface{}
+}
+
+type DataFunc func(http.ResponseWriter, *http.Request) interface{}
+func (dh DataFunc) GetData(writer http.ResponseWriter, req *http.Request) interface{} {
+	return dh(writer, req)
+}
+
+type Data struct {
+	d interface{}
+}
+func (dh Data) GetData(http.ResponseWriter, *http.Request) interface{} {
+	return dh.d
+}
 
 func init(){
 	go func() {
@@ -117,22 +133,28 @@ func LoadTemplates() (*template.Template, map[string]os.FileInfo) {
 	return all, map1
 }
 // 向客户端发送HTML格式的错误信息
-func SendError(writer http.ResponseWriter, statusCode int, title string, description interface{}) {
+func SendError(writer http.ResponseWriter, req *http.Request, statusCode int, title string, description interface{}) {
 	writer.Header().Set("Content-Type", "text/html; charset=utf-8")
 	writer.WriteHeader(statusCode)
 	filename:=fmt.Sprintf("/errors/%d.html", statusCode)
 	_, exists:=cache[filepath.Join(Dir, filename)]
 	if exists {
-		data:=GetData(filename)
-		if data==nil || data==DefaultData {
+		var data interface{}
+		obj, has := DataMap[filename]
+		if has {
+			data = obj.GetData(writer, req)
+		}
+		if data==nil {
 			map1:=make(map[string]interface{})
 			map1["Title"]=title
 			map1["Description"]=description
+			map1["CsrfToken"]=nosurf.Token(req)
 			data=&map1
 		}else{
 			if map1, yes := data.(map[string]interface{}); yes {
 				map1["Title"]=title
 				map1["Description"]=description
+				map1["CsrfToken"]=nosurf.Token(req)
 			}
 		}
 		if err := tt.ExecuteTemplate(writer, filename, data); err != nil {
@@ -158,7 +180,7 @@ func Out(writer http.ResponseWriter, req *http.Request, data interface{}, filena
 		if filename[len(filename)-1] == '/' {
 			filename = filename + "index.html"
 		}else if strings.Contains(filename, "..") {
-			SendError(writer, http.StatusBadRequest, "非法的请求", "请求地址含有非法的字符。")
+			SendError(writer, req, http.StatusBadRequest, "非法的请求", "请求地址含有非法的字符。")
 			return
 		}
 		filename = filename[len(ContextPath):]
@@ -168,28 +190,25 @@ func Out(writer http.ResponseWriter, req *http.Request, data interface{}, filena
 	_, exists:=cache[filepath.Join(Dir, filename)]
 	if exists {
 		if data==nil {
-			data = GetData(filename)
+			data = GetData(filename, writer, req)
 		}
 		if err := tt.ExecuteTemplate(writer, filename, data); err != nil {
-			SendError(writer, http.StatusInternalServerError, "模板渲染失败", fmt.Sprintf("模板渲染失败：%v", err))
+			SendError(writer, req, http.StatusInternalServerError, "模板渲染失败", fmt.Sprintf("模板渲染失败：%v", err))
 		}
 	}else{
-		SendError(writer, http.StatusNotFound, "您要访问的资源不存在", fmt.Sprintf("不存在指定的模板文件：%s。", filename))
+		SendError(writer, req, http.StatusNotFound, "您要访问的资源不存在", fmt.Sprintf("不存在指定的模板文件：%s。", filename))
 	}
 }
 func SetData(path string, data interface{}){
-	DataMap[path]=data
+	DataMap[path]=&Data{d:data}
 }
-func GetData(path string) interface{} {
+func SetDataFunc(path string, handler func(writer http.ResponseWriter, req *http.Request) interface{}){
+	DataMap[path]=DataFunc(handler)
+}
+func GetData(path string, writer http.ResponseWriter, req *http.Request) interface{} {
 	obj, exists := DataMap[path]
 	if exists {
-		switch obj.(type) {
-		case func() interface{}:
-			fn := obj.(func() interface{})
-			return fn()
-		default:
-			return obj
-		}
+		return obj.GetData(writer, req)
 	}
-	return DefaultData
+	return DefaultData.GetData(writer, req)
 }

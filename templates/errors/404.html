@@ -13,5 +13,9 @@
 <body>
     <h2>{{.Title}}</h2>
     <pre>{{.Description}}</pre>
+    <form id="form001" name="form001" method="post">
+        <input type="hidden" id="csrf_token" name="csrf_token" value="{{ .CsrfToken }}"/>
+        <input type="button" value="返 回" onclick="window.location.go(-1)"/>
+    </form>
 </body>
 </html>
