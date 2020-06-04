@@ -165,6 +165,7 @@ func SendError(writer http.ResponseWriter, req *http.Request, statusCode int, ti
 			log.Printf("The connection to the client has been disconnected. %v.\r\n", err)
 		}
 	}
+	req.Close=true	// 标记不再渲染模板
 }
 /*
 模板渲染
@@ -192,8 +193,10 @@ func Out(writer http.ResponseWriter, req *http.Request, data interface{}, filena
 		if data==nil {
 			data = GetData(filename, writer, req)
 		}
-		if err := tt.ExecuteTemplate(writer, filename, data); err != nil {
-			SendError(writer, req, http.StatusInternalServerError, "模板渲染失败", fmt.Sprintf("模板渲染失败：%v", err))
+		if !req.Close {
+			if err := tt.ExecuteTemplate(writer, filename, data); err != nil {
+				SendError(writer, req, http.StatusInternalServerError, "模板渲染失败", fmt.Sprintf("模板渲染失败：%v", err))
+			}
 		}
 	}else{
 		SendError(writer, req, http.StatusNotFound, "您要访问的资源不存在", fmt.Sprintf("不存在指定的模板文件：%s。", filename))
