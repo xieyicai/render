@@ -3,6 +3,7 @@ package render
 import (
 	"errors"
 	"fmt"
+	"github.com/Masterminds/sprig"
 	"github.com/justinas/nosurf"
 	"html/template"
 	"io/ioutil"
@@ -111,9 +112,9 @@ func LoadTemplates() (*template.Template, map[string]os.FileInfo) {
 				s := string(b)
 				name:=filepath.ToSlash(path[len(Dir):])
 				if all==nil {
-					all, err = template.New(name).Parse(s)
+					all, err = template.New(name).Funcs(sprig.FuncMap()).Parse(s)
 				}else{
-					_, err = all.New(name).Parse(s)
+					_, err = all.New(name).Funcs(sprig.FuncMap()).Parse(s)
 				}
 				if err!=nil {
 					fmt.Printf("模板文件存在语法错误：%s， %v。\r\n", path, err)
